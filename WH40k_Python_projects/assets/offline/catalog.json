@@ -1,0 +1,77 @@
+[
+  {
+    "objectID": "prod-norn-emissary",
+    "name": "Norn Emissary",
+    "slug": "tyranids-norn-emissary",
+    "sku": "99120106064",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120106064_TyrNornEmissary2023OTT1360/01-12.jpg",
+      "/app/resources/catalog/product/threeSixty/99120106064_TyrNornAssimilator2023OTT1360/01-12.jpg",
+      "/app/resources/catalog/product/920x950/99120106064_TyrNornEmissary01.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-norn-assimilator",
+    "name": "Norn Assimilator",
+    "slug": "tyranids-norn-assimilator",
+    "sku": "99120106064",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120106064_TyrNornAssimilator2023OTT1360/01-12.jpg",
+      "/app/resources/catalog/product/threeSixty/99120106064_TyrNornEmissary2023OTT1360/01-12.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-riptide",
+    "name": "T'au Empire: XV104 Riptide Battlesuit",
+    "slug": "tau-empire-xv104-riptide-battlesuit",
+    "sku": "99120113030",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120113030_Riptide360/01-12.jpg",
+      "/app/resources/catalog/product/920x950/99120113030_Riptide01.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-hekaton",
+    "name": "Leagues of Votann: Hekaton Land Fortress",
+    "slug": "leagues-of-votann-hekaton-land-fortress",
+    "sku": "99120118002",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120118002_LoVHekatonLandFortress360/01-12.jpg",
+      "/app/resources/catalog/product/920x950/99120118002_HekatonLandFortress01.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-ghostkeel",
+    "name": "T'au Empire: XV95 Ghostkeel Battlesuit",
+    "slug": "tau-empire-xv95-ghostkeel-battlesuit",
+    "sku": "99120113050",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120113050_Ghostkeel360/01-12.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-sagitaur",
+    "name": "Leagues of Votann: Sagitaur",
+    "slug": "leagues-of-votann-sagitaur",
+    "sku": "99120118003",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120118003_LoVSagitaur360/01-12.jpg"
+    ]
+  },
+  {
+    "objectID": "prod-norn-crown",
+    "name": "Tyranids: Winged Hive Tyrant",
+    "slug": "tyranids-winged-hive-tyrant",
+    "sku": "99120106056",
+    "productType": "miniature",
+    "images": [
+      "/app/resources/catalog/product/threeSixty/99120106056_WingedHiveTyrant360/01-12.jpg"
+    ]
+  }
+]

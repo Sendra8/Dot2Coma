@@ -1,0 +1,151 @@
+{
+  "query": "Norn Emissary",
+  "product": {
+    "object_id": "prod-norn-emissary",
+    "name": "Norn Emissary",
+    "slug": "tyranids-norn-emissary",
+    "sku": "99120106064",
+    "score": 100.0
+  },
+  "runner_up_products": [
+    {
+      "name": "Norn Assimilator",
+      "score": 85.5
+    },
+    {
+      "name": "Leagues of Votann: Hekaton Land Fortress",
+      "score": 45.0
+    },
+    {
+      "name": "Leagues of Votann: Sagitaur",
+      "score": 45.0
+    }
+  ],
+  "spin": {
+    "folder": "99120106064_TyrNornEmissary2023OTT1360",
+    "rows": 3,
+    "angles": 12,
+    "cardinal_frames": {
+      "front": "01-12.jpg",
+      "left": "01-03.jpg",
+      "back": "01-06.jpg",
+      "right": "01-09.jpg"
+    },
+    "provider": "offline-synthetic",
+    "archetype": "biped_organic",
+    "warning": "Frames are procedurally generated stand-ins, NOT official Games Workshop photography. Re-run with WHPROXY_SOURCE=network for real source images.",
+    "selected_folder": "99120106064_TyrNornEmissary2023OTT1360",
+    "score": 100.0
+  },
+  "palette": {
+    "ochre": [
+      194,
+      151,
+      78
+    ],
+    "gray": [
+      105,
+      105,
+      105
+    ],
+    "black": [
+      24,
+      24,
+      24
+    ]
+  },
+  "quantization": {
+    "black_fraction": 0.05,
+    "gray_fraction": 0.15,
+    "min_ochre_fraction": 0.5,
+    "measured": {
+      "front": {
+        "ochre": 0.8954,
+        "gray": 0.0771,
+        "black": 0.0275
+      },
+      "back": {
+        "ochre": 0.8926,
+        "gray": 0.0858,
+        "black": 0.0216
+      },
+      "left": {
+        "ochre": 0.876,
+        "gray": 0.0993,
+        "black": 0.0247
+      },
+      "right": {
+        "ochre": 0.8859,
+        "gray": 0.0928,
+        "black": 0.0213
+      }
+    }
+  },
+  "processing": {
+    "process_height_px": 320,
+    "target_height_mm": 100.0,
+    "white_threshold": 242,
+    "min_component_px": 40
+  },
+  "mesh": {
+    "voxel_mm": 0.3125,
+    "volume_shape_zyx": [
+      320,
+      238,
+      190
+    ],
+    "occupied_voxels": 4432920,
+    "occupied_volume_mm3": 135281.982421875,
+    "surface_color_depth_mm": 2.5,
+    "visual_hull_pair_mode": "union",
+    "bbox_mm": {
+      "min": [
+        0.466,
+        0.464,
+        0.156
+      ],
+      "max": [
+        58.605,
+        73.605,
+        98.906
+      ],
+      "size": [
+        58.139,
+        73.141,
+        98.75
+      ]
+    },
+    "parts": {
+      "ochre": {
+        "voxels": 4203982,
+        "faces": 25000,
+        "vertices": 12404,
+        "components": 29
+      },
+      "gray": {
+        "voxels": 186571,
+        "faces": 25000,
+        "vertices": 12654,
+        "components": 112
+      },
+      "black": {
+        "voxels": 42367,
+        "faces": 25000,
+        "vertices": 12524,
+        "components": 78
+      }
+    }
+  },
+  "render": {
+    "renderer": "playwright",
+    "ok": true
+  },
+  "files": {
+    "obj": "mesh/model.obj",
+    "mtl": "mesh/model.mtl",
+    "viewer": "viewer/viewer.html",
+    "source_grid": "color/source_grid.png",
+    "color_grid": "color/color_grid.png",
+    "preview": "preview.png"
+  }
+}

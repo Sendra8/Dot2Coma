@@ -1,0 +1,151 @@
+{
+  "query": "XV104 Riptide",
+  "product": {
+    "object_id": "prod-riptide",
+    "name": "T'au Empire: XV104 Riptide Battlesuit",
+    "slug": "tau-empire-xv104-riptide-battlesuit",
+    "sku": "99120113030",
+    "score": 100.0
+  },
+  "runner_up_products": [
+    {
+      "name": "T'au Empire: XV95 Ghostkeel Battlesuit",
+      "score": 34.62
+    },
+    {
+      "name": "Tyranids: Winged Hive Tyrant",
+      "score": 32.88
+    },
+    {
+      "name": "Leagues of Votann: Hekaton Land Fortress",
+      "score": 32.73
+    }
+  ],
+  "spin": {
+    "folder": "99120113030_Riptide360",
+    "rows": 3,
+    "angles": 12,
+    "cardinal_frames": {
+      "front": "01-12.jpg",
+      "left": "01-03.jpg",
+      "back": "01-06.jpg",
+      "right": "01-09.jpg"
+    },
+    "provider": "offline-synthetic",
+    "archetype": "battlesuit",
+    "warning": "Frames are procedurally generated stand-ins, NOT official Games Workshop photography. Re-run with WHPROXY_SOURCE=network for real source images.",
+    "selected_folder": "99120113030_Riptide360",
+    "score": 100.0
+  },
+  "palette": {
+    "ochre": [
+      194,
+      151,
+      78
+    ],
+    "gray": [
+      105,
+      105,
+      105
+    ],
+    "black": [
+      24,
+      24,
+      24
+    ]
+  },
+  "quantization": {
+    "black_fraction": 0.05,
+    "gray_fraction": 0.15,
+    "min_ochre_fraction": 0.5,
+    "measured": {
+      "front": {
+        "ochre": 0.8557,
+        "gray": 0.1059,
+        "black": 0.0384
+      },
+      "back": {
+        "ochre": 0.8625,
+        "gray": 0.1059,
+        "black": 0.0316
+      },
+      "left": {
+        "ochre": 0.866,
+        "gray": 0.1,
+        "black": 0.0341
+      },
+      "right": {
+        "ochre": 0.8693,
+        "gray": 0.1014,
+        "black": 0.0293
+      }
+    }
+  },
+  "processing": {
+    "process_height_px": 320,
+    "target_height_mm": 120.0,
+    "white_threshold": 242,
+    "min_component_px": 40
+  },
+  "mesh": {
+    "voxel_mm": 0.375,
+    "volume_shape_zyx": [
+      320,
+      213,
+      285
+    ],
+    "occupied_voxels": 5515772,
+    "occupied_volume_mm3": 290870.7890625,
+    "surface_color_depth_mm": 2.5,
+    "visual_hull_pair_mode": "union",
+    "bbox_mm": {
+      "min": [
+        0.937,
+        0.937,
+        0.187
+      ],
+      "max": [
+        105.578,
+        78.563,
+        118.313
+      ],
+      "size": [
+        104.64,
+        77.625,
+        118.125
+      ]
+    },
+    "parts": {
+      "ochre": {
+        "voxels": 5245883,
+        "faces": 25000,
+        "vertices": 12426,
+        "components": 26
+      },
+      "gray": {
+        "voxels": 189024,
+        "faces": 25000,
+        "vertices": 12552,
+        "components": 80
+      },
+      "black": {
+        "voxels": 80865,
+        "faces": 25000,
+        "vertices": 12556,
+        "components": 77
+      }
+    }
+  },
+  "render": {
+    "renderer": "playwright",
+    "ok": true
+  },
+  "files": {
+    "obj": "mesh/model.obj",
+    "mtl": "mesh/model.mtl",
+    "viewer": "viewer/viewer.html",
+    "source_grid": "color/source_grid.png",
+    "color_grid": "color/color_grid.png",
+    "preview": "preview.png"
+  }
+}
