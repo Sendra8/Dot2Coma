@@ -8,6 +8,7 @@ import numpy as np
 
 from .catalog import build_hits, query_catalog, select_product, select_spin_set
 from .config import Config
+from .models import ProductHit, SpinSet
 from .download import download_cardinals
 from .image_pipeline import (
     align_opposite_views,
@@ -40,6 +41,18 @@ def _prepare_view(path: Path, cfg: Config):
 
 
 def _resolve_product(query: str, cfg: Config):
+    if cfg.source_provider == "local":
+        # The frames are already chosen, so there is nothing to search for.
+        product = ProductHit(
+            object_id="local",
+            name=query,
+            slug=slugify(query),
+            sku=None,
+            images=[],
+            score=100.0,
+        )
+        return product, SpinSet(folder=Path(cfg.frames_dir).name or "local", score=100.0), []
+
     if cfg.source_provider == "offline":
         from .offline import load_catalog_records
 
@@ -51,6 +64,11 @@ def _resolve_product(query: str, cfg: Config):
 
 
 def _fetch_cardinals(cfg: Config, spin, source_dir: Path):
+    if cfg.source_provider == "local":
+        from .local_frames import load_cardinals_local
+
+        return load_cardinals_local(cfg, spin, source_dir)
+
     if cfg.source_provider == "offline":
         from .offline import download_cardinals_offline
 

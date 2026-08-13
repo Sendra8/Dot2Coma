@@ -22,9 +22,19 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--surface-color-depth-mm", type=float, default=2.5)
     b.add_argument(
         "--source",
-        choices=("network", "offline"),
+        choices=("network", "local", "offline"),
         default=None,
-        help="network hits Algolia + the GW CDN; offline renders synthetic frames",
+        help=(
+            "network: Algolia + the GW CDN (real photography); "
+            "local: four cardinal images from --frames-dir; "
+            "offline: synthetic stand-in frames, for CI or blocked egress"
+        ),
+    )
+    b.add_argument(
+        "--frames-dir",
+        type=Path,
+        default=None,
+        help="directory holding front/left/back/right images; implies --source local",
     )
     b.add_argument(
         "--pair-mode",
@@ -36,6 +46,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "build":
         base = Config()
+        source = args.source or ("local" if args.frames_dir else base.source_provider)
+        if source == "local" and not args.frames_dir:
+            p.error("--source local requires --frames-dir")
         cfg = Config(
             target_height_mm=args.height_mm,
             process_height_px=args.process_height,
@@ -43,7 +56,8 @@ def main(argv: list[str] | None = None) -> int:
             gray_fraction=args.gray,
             surface_color_depth_mm=args.surface_color_depth_mm,
             visual_hull_pair_mode=args.pair_mode,
-            source_provider=args.source or base.source_provider,
+            source_provider=source,
+            frames_dir=str(args.frames_dir) if args.frames_dir else base.frames_dir,
         )
         result = build(args.name, args.out, cfg)
         manifest = json.loads((result / "manifest.json").read_text(encoding="utf-8"))

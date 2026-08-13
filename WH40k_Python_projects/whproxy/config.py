@@ -36,7 +36,10 @@ class Config:
     gray_rgb: tuple[int, int, int] = (105, 105, 105)
     black_rgb: tuple[int, int, int] = (24, 24, 24)
 
-    # provider: "network" hits Algolia + the GW CDN, "offline" uses local
-    # fixtures under assets/offline (see whproxy/offline.py).
+    # provider:
+    #   "network" hits Algolia + the GW CDN (the real path)
+    #   "local"   reads four cardinal images from `frames_dir`
+    #   "offline" renders synthetic stand-in frames (CI / blocked egress only)
     source_provider: str = os.getenv("WHPROXY_SOURCE", "network")
+    frames_dir: str = os.getenv("WHPROXY_FRAMES_DIR", "")
     cache_dir: str = os.getenv("WHPROXY_CACHE", ".cache")

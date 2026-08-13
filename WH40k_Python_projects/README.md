@@ -34,21 +34,49 @@ python -m whproxy build "norn emissry" --black 0.05 --gray 0.15
 
 Salida en `output/<slug>/` con el árbol descrito en el brief.
 
+## Imágenes propias (`--frames-dir`)
+
+Si tienes las cuatro vistas cardinales en disco — descargadas desde una máquina con
+salida a internet, o fotos tuyas de la miniatura montada sobre fondo blanco — puedes
+saltarte Algolia y el CDN por completo:
+
+```bash
+python -m whproxy build "Norn Emissary" --frames-dir ./mis_fotos
+```
+
+```text
+mis_fotos/
+├── front.jpg
+├── left.jpg
+├── back.jpg
+└── right.jpg
+```
+
+Acepta `.jpg`, `.jpeg`, `.png` y `.webp`. Requisitos: fondo blanco, modelo centrado, y
+que `left`/`right` sean pasos reales de 90° del torno — no una copia espejada.
+
+**Este es el modo que da resultados reales cuando la red está cortada.**
+
 ## Modo offline
 
 `--source offline` (o `WHPROXY_SOURCE=offline`) sustituye Algolia y el CDN de GW por
 un catálogo fixture y por fotogramas de torno **sintéticos**, renderizados desde un
 modelo vóxel procedural por arquetipo.
 
-Sirve para dos cosas: CI sin red, y entornos con egress bloqueado hacia
-`warhammer.com` / `*.algolia.net`. Los fotogramas **no son fotografía oficial de
-Games Workshop** y nunca se presentan como tal: el manifest lleva
+**Advertencia importante sobre qué es y qué no es.** El muñeco vóxel está escrito a
+mano en `whproxy/offline.py` con cápsulas, elipsoides y cajas colocadas a ojo. No es
+una simplificación de la miniatura real ni deriva de ninguna imagen suya: es una
+figura inventada con forma de bípedo, de mecha o de tanque a la que se le pone la
+etiqueta de la unidad que pidas. La silueta que sale **no se parece a la unidad de
+verdad más allá de la categoría general**.
+
+Existe para una sola cosa: ejercitar las etapas 5-14 del pipeline cuando no hay
+fuente disponible. Es útil para CI y para depurar el visual hull, no para obtener un
+proxy de una unidad concreta. Para eso usa `--frames-dir` o el modo `network`.
+
+Nunca se presenta como fotografía oficial: el manifest lleva
 `"provider": "offline-synthetic"` más un campo `warning`, y la `preview.png` se
 etiqueta `[SYNTHETIC SOURCE FRAMES]`.
-
-Son vistas de torno geométricamente honestas (un único modelo 3D rotado 90° cuatro
-veces), así que el alineado de siluetas, el visual hull y la cáscara de color se
-ejercitan exactamente igual que con fotos reales.
 
 ## Configuración
 
@@ -91,6 +119,11 @@ visual hull y núcleo ocre bajo cáscara negra.
 ## Estado de red en el entorno donde se generaron las muestras
 
 `www.warhammer.com` y `M5ZIQZNQ2H-dsn.algolia.net` devuelven 403 en el CONNECT del
-proxy de egress. Las muestras de `samples/` están generadas con `--source offline`.
+proxy de egress.
+
+Por tanto las muestras de `samples/` están generadas con `--source offline` y **no
+representan a las unidades cuyo nombre llevan** — son el muñeco procedural descrito
+arriba. Están ahí como evidencia de que el pipeline corre entero, no como resultado.
+
 En una máquina con salida a esos dos hosts, el mismo comando sin `--source` usa las
 fotografías oficiales sin cambiar nada más.
