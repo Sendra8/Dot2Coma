@@ -15,6 +15,29 @@ SPIN_RE = re.compile(
 )
 
 
+class UnreachableSource(RuntimeError):
+    """Raised when the search host or the image CDN cannot be reached."""
+
+    def __init__(self, url: str, cause: Exception):
+        self.url = url
+        self.cause = cause
+        super().__init__(
+            f"Could not reach {url}\n"
+            f"  {type(cause).__name__}: {cause}\n\n"
+            "The automatic download needs outbound HTTPS to both\n"
+            "  www.warhammer.com\n"
+            "  <app-id>-dsn.algolia.net\n"
+            "A 403 on the CONNECT means an egress policy is blocking them rather\n"
+            "than the hosts being down.\n\n"
+            "Options:\n"
+            "  - allow those two hosts, then re-run unchanged\n"
+            "  - fetch the four turntable frames yourself and pass\n"
+            "      --frames-dir <dir>   (front/left/back/right)\n"
+            "  - --source offline for a synthetic stand-in that does NOT\n"
+            "    resemble the real unit (CI and plumbing checks only)"
+        )
+
+
 def normalize(text: str) -> str:
     text = html.unescape(text).lower()
     text = text.replace("t'au", "tau").replace("t’au", "tau")
@@ -43,10 +66,8 @@ def _flatten_image_strings(images) -> list[str]:
 
 
 def query_catalog(query: str, cfg: Config, hits_per_page: int = 30) -> list[ProductHit]:
-    url = (
-        f"https://{cfg.algolia_app_id}-dsn.algolia.net/1/indexes/"
-        f"{cfg.algolia_index}/query"
-    )
+    base = cfg.algolia_base or f"https://{cfg.algolia_app_id}-dsn.algolia.net"
+    url = f"{base.rstrip('/')}/1/indexes/{cfg.algolia_index}/query"
     headers = {
         "X-Algolia-Application-Id": cfg.algolia_app_id,
         "X-Algolia-API-Key": cfg.algolia_api_key,
@@ -65,8 +86,11 @@ def query_catalog(query: str, cfg: Config, hits_per_page: int = 30) -> list[Prod
         ],
     }
 
-    r = requests.post(url, headers=headers, json=payload, timeout=30)
-    r.raise_for_status()
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=30)
+        r.raise_for_status()
+    except requests.RequestException as exc:
+        raise UnreachableSource(url, exc) from exc
     data = r.json()
 
     return build_hits(query, data.get("hits", []))

@@ -16,6 +16,8 @@ class Config:
         "prod-lazarus-product-en-gb",
     )
     cdn_base: str = os.getenv("GW_CDN_BASE", "https://www.warhammer.com")
+    # Overridable so the search host can be redirected (or pointed at a mock).
+    algolia_base: str = os.getenv("GW_ALGOLIA_BASE", "")
 
     # image processing
     process_height_px: int = 320

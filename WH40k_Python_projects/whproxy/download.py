@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from .catalog import UnreachableSource
 from .config import Config
 from .models import SpinSet
 
@@ -21,8 +22,20 @@ def frame_url(cfg: Config, spin: SpinSet, filename: str) -> str:
 
 
 def probe_frame(cfg: Config, spin: SpinSet, filename: str) -> bool:
-    r = requests.get(frame_url(cfg, spin, filename), timeout=20, headers=UA)
-    return r.status_code == 200 and r.headers.get("content-type", "").startswith("image/")
+    """Existence check only — never pull the payload just to count frames."""
+    url = frame_url(cfg, spin, filename)
+    try:
+        r = requests.head(url, timeout=20, headers=UA, allow_redirects=True)
+        if r.status_code < 400:
+            return r.headers.get("content-type", "").startswith("image/")
+        if r.status_code not in (403, 405, 501):
+            return False
+    except requests.RequestException:
+        pass
+
+    # Some CDNs refuse HEAD; fall back to a streamed GET closed after the headers.
+    with requests.get(url, timeout=20, headers=UA, stream=True) as r:
+        return r.status_code == 200 and r.headers.get("content-type", "").startswith("image/")
 
 
 def detect_grid(cfg: Config, spin: SpinSet) -> tuple[int, int]:
@@ -93,8 +106,11 @@ def download_cardinals(
             continue
 
         url = frame_url(cfg, spin, filename)
-        r = requests.get(url, timeout=30, headers=UA)
-        r.raise_for_status()
+        try:
+            r = requests.get(url, timeout=30, headers=UA)
+            r.raise_for_status()
+        except requests.RequestException as exc:
+            raise UnreachableSource(url, exc) from exc
         _validate_payload(r.content, r.headers.get("content-type", ""), url)
 
         cached.write_bytes(r.content)

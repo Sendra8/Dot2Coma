@@ -34,6 +34,28 @@ python -m whproxy build "norn emissry" --black 0.05 --gray 0.15
 
 Salida en `output/<slug>/` con el árbol descrito en el brief.
 
+## ¿La descarga es automática?
+
+Sí. `--source network` es el modo por defecto y no requiere ningún paso manual:
+resuelve el producto en Algolia, extrae la carpeta `threeSixty`, detecta por HEAD
+cuántas filas y ángulos tiene el set y descarga los cuatro cardinales, cacheando en
+`WHPROXY_CACHE`.
+
+Sólo necesita salida HTTPS a dos hosts:
+
+```text
+www.warhammer.com
+<app-id>-dsn.algolia.net
+```
+
+Si un proxy corporativo o una política de egress los bloquea, el CLI lo dice con un
+mensaje explicando las alternativas en vez de soltar un traceback. En una máquina
+doméstica normal no hay nada que configurar.
+
+El camino de red está cubierto por `tests/test_network_path.py`, que levanta un
+servidor local imitando a Algolia y al CDN y corre el código de descarga real contra
+él — búsqueda, detección de rejilla, descarga cardinal, caché y `build()` completo.
+
 ## Imágenes propias (`--frames-dir`)
 
 Si tienes las cuatro vistas cardinales en disco — descargadas desde una máquina con

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+from .catalog import UnreachableSource
 from .config import Config
 from .pipeline import build
 
@@ -59,7 +61,11 @@ def main(argv: list[str] | None = None) -> int:
             source_provider=source,
             frames_dir=str(args.frames_dir) if args.frames_dir else base.frames_dir,
         )
-        result = build(args.name, args.out, cfg)
+        try:
+            result = build(args.name, args.out, cfg)
+        except UnreachableSource as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         manifest = json.loads((result / "manifest.json").read_text(encoding="utf-8"))
 
         print(manifest["product"]["name"])
