@@ -80,6 +80,27 @@ python -m callbridge --browser       # o en el navegador
 Con un i5 de 12.ª generación, una llamada de 1 hora tarda aproximadamente entre 20 y 40 minutos en total.
 Si tu equipo va justo, prueba los modelos Whisper `small` o `medium` en *Ajustes*, aunque son peores con los idiomas mezclados.
 
+## Privacidad: todo en local
+
+- **La transcripción, la diarización y el resumen con GGUF se hacen en tu PC.** El audio y el texto nunca salen de él.
+- La interfaz es una web local que solo escucha en `127.0.0.1` (no es accesible desde la red), y la telemetría de las librerías está desactivada.
+- La única conexión posible es **descargar los modelos públicos la primera vez** (Whisper desde Hugging Face y los de diarización desde GitHub).
+  Una vez descargados se cargan siempre desde disco.
+- **Modo «Solo local»** (*Ajustes → Privacidad*, desmarcar «Permitir descargar modelos»): la app no se conecta a nada.
+  Si tu PC del trabajo no puede descargar, prepara los modelos en otro equipo y cópialos:
+
+  ```bash
+  python preparar_modelos.py --out modelos          # ~0,9 GB con large-v3-turbo
+  ```
+
+  Copia la carpeta `modelos` al portátil e indícala en *Ajustes → Carpeta de modelos*.
+- Lo único que puedes enviar fuera, y solo si quieres, es el texto de *Copiar para Claude*.
+
+**¿Por qué no WhisperX?** WhisperX usa el mismo motor de transcripción (faster-whisper) y, para diarizar, pyannote con PyTorch.
+Aquí se usa ese mismo modelo de segmentación de pyannote 3.0, pero en ONNX con sherpa-onnx: es local, igual de capaz,
+mucho más ligero (sin PyTorch, que ocupa ~2 GB) y no exige token de Hugging Face. WhisperX añade además un alineado por idioma
+(wav2vec2) que funciona peor cuando se mezclan español e inglés.
+
 ## Atajos
 
 | Tecla | Acción |

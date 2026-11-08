@@ -97,3 +97,26 @@ def test_export_claude():
     assert "- **N2**: sin identificar" in md
     assert "[00:03] Marta: Hola. ¿Empezamos?" in md
     assert "[01:10] N2: ⚠ ok" in md and "1 frase(s) marcadas" in md
+
+
+def test_offline_mode_never_downloads(tmp_path, monkeypatch):
+    import pytest
+    from callbridge import pipeline
+
+    def boom(*a, **k):
+        raise AssertionError("no debería descargar")
+    monkeypatch.setattr(pipeline, "_download", boom)
+    with pytest.raises(pipeline.ModelMissing):
+        pipeline.ensure_diar_models(tmp_path, "x.onnx", allow_download=False)
+    with pytest.raises(pipeline.ModelMissing):
+        pipeline.ensure_whisper("small", tmp_path, allow_download=False)
+    (tmp_path / "whisper" / "small").mkdir(parents=True)
+    (tmp_path / "whisper" / "small" / "model.bin").write_bytes(b"")
+    assert pipeline.ensure_whisper("small", tmp_path, allow_download=False).endswith("small")
+
+
+def test_bool_setting_parsing(tmp_path, monkeypatch):
+    monkeypatch.setenv("CALLBRIDGE_HOME", str(tmp_path))
+    from callbridge import config
+    assert config.save_settings({"allow_downloads": "false"})["allow_downloads"] is False
+    assert config.save_settings({"allow_downloads": True})["allow_downloads"] is True

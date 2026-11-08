@@ -105,11 +105,24 @@ def _download(url: str, dest: Path, progress: Progress | None, label: str) -> No
     tmp.replace(dest)
 
 
-def ensure_diar_models(models_dir: Path, embedding_name: str, progress: Progress | None = None) -> tuple[Path, Path]:
+class ModelMissing(RuntimeError):
+    pass
+
+
+def _need_download(allow: bool, what: str, where: Path) -> None:
+    if not allow:
+        raise ModelMissing(
+            f"Falta el modelo {what} en {where}. Está activado «Solo local»: prepara los modelos con "
+            f"preparar_modelos.py en otro equipo y copia la carpeta, o permite descargas en Ajustes.")
+
+
+def ensure_diar_models(models_dir: Path, embedding_name: str, progress: Progress | None = None,
+                       allow_download: bool = True) -> tuple[Path, Path]:
     d = models_dir / "diarizacion"
     d.mkdir(parents=True, exist_ok=True)
     seg = d / "pyannote-segmentation-3-0.onnx"
     if not seg.exists():
+        _need_download(allow_download, "de segmentación", seg)
         tar_path = d / "segmentation.tar.bz2"
         _download(SEGMENTATION_URL, tar_path, progress, "modelo de segmentación")
         with tarfile.open(tar_path) as tar:
@@ -121,6 +134,7 @@ def ensure_diar_models(models_dir: Path, embedding_name: str, progress: Progress
     if not emb.is_absolute():
         emb = d / embedding_name
         if not emb.exists():
+            _need_download(allow_download, "de voz", emb)
             _download(EMBEDDING_URL.format(name=embedding_name), emb, progress, "modelo de voz")
     return seg, emb
 
@@ -129,17 +143,33 @@ _whisper_cache: dict = {}
 _whisper_lock = threading.Lock()
 
 
+def ensure_whisper(name: str, models_dir: Path, allow_download: bool = True) -> str:
+    """Ruta local del modelo Whisper. Solo descarga (de Hugging Face) si falta y está permitido.
+
+    Una vez descargado se carga siempre desde la carpeta, sin conectarse a ningún sitio.
+    """
+    if Path(name).is_dir():
+        return name
+    d = models_dir / "whisper" / name
+    if not (d / "model.bin").exists():
+        _need_download(allow_download, f"Whisper «{name}»", d)
+        from faster_whisper import download_model
+        d.mkdir(parents=True, exist_ok=True)
+        download_model(name, output_dir=str(d))
+    return str(d)
+
+
 def get_whisper(settings: dict, models_dir: Path):
     from faster_whisper import WhisperModel
     key = (settings["whisper_model"], settings["whisper_compute_type"], int(settings["cpu_threads"]))
     with _whisper_lock:
         if key not in _whisper_cache:
             _whisper_cache.clear()  # solo un modelo en memoria
+            path = ensure_whisper(settings["whisper_model"], models_dir, bool(settings.get("allow_downloads", True)))
             _whisper_cache[key] = WhisperModel(
-                settings["whisper_model"], device="cpu",
+                path, device="cpu", local_files_only=True,
                 compute_type=settings["whisper_compute_type"],
                 cpu_threads=int(settings["cpu_threads"]),
-                download_root=str(models_dir / "whisper"),
             )
         return _whisper_cache[key]
 
@@ -229,7 +259,8 @@ def process(audio_path: Path, project: dict, settings: dict, models_dir: Path,
 
     progress("Preparando modelos (la primera vez se descargan)", 0.02)
     seg_model, emb_model = ensure_diar_models(models_dir, settings["diar_embedding"],
-                                              lambda l, f: progress(l, 0.02))
+                                              lambda l, f: progress(l, 0.02),
+                                              allow_download=bool(settings.get("allow_downloads", True)))
     model = get_whisper(settings, models_dir)
 
     remote = chans[-1]

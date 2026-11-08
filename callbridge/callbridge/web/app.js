@@ -805,7 +805,10 @@ $("#export-menu").addEventListener("click", async (e) => {
 $("#btn-settings").onclick = async () => {
   const s = await api("GET", "/api/settings");
   const f = $("#settings-form");
-  for (const el of f.elements) if (el.name && el.name in s) el.value = s[el.name];
+  for (const el of f.elements) {
+    if (!el.name || !(el.name in s)) continue;
+    if (el.type === "checkbox") el.checked = !!s[el.name]; else el.value = s[el.name];
+  }
   $("#cur-projects").textContent = "Actual: " + s._projects_dir;
   $("#cur-models").textContent = "Actual: " + s._models_dir;
   $("#pick-gguf").hidden = !s._has_picker;
@@ -815,7 +818,7 @@ $("#btn-settings").onclick = async () => {
   d.onclose = async () => {
     if (d.returnValue !== "ok") return;
     const body = {};
-    for (const el of f.elements) if (el.name) body[el.name] = el.value;
+    for (const el of f.elements) if (el.name) body[el.name] = el.type === "checkbox" ? el.checked : el.value;
     try { await api("PUT", "/api/settings", body); toast("Ajustes guardados"); updateSummaryHint(); } catch (e) { toast(e.message); }
   };
 };

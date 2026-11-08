@@ -6,6 +6,7 @@ pywebview no está instalado, la abre en el navegador predeterminado.
 from __future__ import annotations
 
 import argparse
+import os
 import socket
 import sys
 import threading
@@ -37,8 +38,21 @@ def _ensure_streams() -> None:
         sys.stderr = sys.stderr or log
 
 
+def _privacy() -> None:
+    """Sin telemetría de ninguna librería. El servidor solo escucha en 127.0.0.1."""
+    os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+    os.environ.setdefault("DO_NOT_TRACK", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_IMPLICIT_TOKEN", "1")
+    try:
+        import onnxruntime
+        onnxruntime.disable_telemetry_events()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def main() -> None:
     _ensure_streams()
+    _privacy()
     ap = argparse.ArgumentParser(description="CallBridge – revisión de llamadas")
     ap.add_argument("--browser", action="store_true", help="abrir en el navegador en lugar de ventana propia")
     ap.add_argument("--port", type=int, default=0)

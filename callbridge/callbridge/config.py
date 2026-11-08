@@ -27,6 +27,7 @@ DEFAULT_SUMMARY_PROMPT = (
 )
 
 DEFAULTS: dict = {
+    "allow_downloads": True,            # False => «Solo local»: nunca se conecta a Internet
     "projects_dir": "",                 # vacío => <data_dir>/proyectos
     "models_dir": "",                   # vacío => <data_dir>/modelos
     # Transcripción (faster-whisper)
@@ -65,8 +66,12 @@ def load_settings() -> dict:
 def save_settings(new: dict) -> dict:
     s = load_settings()
     for k, v in new.items():
-        if k in DEFAULTS:
-            s[k] = type(DEFAULTS[k])(v) if DEFAULTS[k] is not None and v is not None else v
+        if k not in DEFAULTS:
+            continue
+        if isinstance(DEFAULTS[k], bool):
+            s[k] = v if isinstance(v, bool) else str(v).lower() in ("1", "true", "on", "sí", "si")
+        else:
+            s[k] = type(DEFAULTS[k])(v)
     settings_path().write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
     return s
 
