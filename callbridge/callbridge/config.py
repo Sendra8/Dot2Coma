@@ -45,6 +45,14 @@ DEFAULTS: dict = {
     "llm_ctx": 8192,
     "llm_threads": 0,
     "summary_prompt": DEFAULT_SUMMARY_PROMPT,
+    # Puente de audio con el móvil
+    "bridge_autostart": True,
+    "bridge_port": 28200,
+    "bridge_to_teams": "CABLE-B Input",     # aquí suena el micro del móvil (en Teams: micrófono «CABLE-B Output»)
+    "bridge_from_teams": "CABLE-A Output",  # de aquí sale lo que dicen los demás (en Teams: altavoz «CABLE-A Input»)
+    "adb_path": "",
+    "bridge_auto_record": False,
+    "bridge_auto_process": True,
 }
 
 

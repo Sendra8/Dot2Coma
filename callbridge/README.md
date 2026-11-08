@@ -47,8 +47,8 @@ Todo se guarda solo: cada llamada es una carpeta con `audio.*`, `project.json` y
 
 ### Opción A: el .exe ya compilado
 
-Cada cambio en `callbridge/` dispara el workflow **«CallBridge – exe de Windows»** de GitHub Actions.
-Descarga el artefacto `CallBridge-windows`, descomprímelo y ejecuta `CallBridge.exe`.
+Cada cambio en `callbridge/` dispara el workflow **«CallBridge – exe de Windows y APK»** de GitHub Actions.
+Descarga el artefacto `CallBridge-windows` (incluye la APK del móvil), descomprímelo y ejecuta `CallBridge.exe`.
 
 ### Opción B: desde el código (Python 3.10–3.12)
 
@@ -79,6 +79,42 @@ python -m callbridge --browser       # o en el navegador
 
 Con un i5 de 12.ª generación, una llamada de 1 hora tarda aproximadamente entre 20 y 40 minutos en total.
 Si tu equipo va justo, prueba los modelos Whisper `small` o `medium` en *Ajustes*, aunque son peores con los idiomas mezclados.
+
+## Puente: el móvil como manos libres de Teams
+
+El móvil hace de altavoz y micrófono del portátil por **cable USB**. Puedes escuchar por el altavoz (manos libres),
+por el auricular del móvil o por unos cascos **Bluetooth** con un botón, como en una llamada de WhatsApp, y la
+llamada se graba en estéreo (izquierda = tú, derecha = los demás) lista para revisar.
+
+```
+Teams ──altavoz──▶ CABLE-A ──▶ CallBridge (PC) ══USB══▶ móvil: altavoz / auricular / Bluetooth
+Teams ◀─micrófono── CABLE-B ◀── CallBridge (PC) ◀══USB══ móvil: micrófono (con cancelación de eco)
+                                   └─▶ grabación estéreo ─▶ llamada nueva en la lista
+```
+
+### Preparación (una sola vez)
+
+1. **VB-CABLE A+B** ([vb-audio.com/Cable](https://vb-audio.com/Cable/), donationware). Instálalo como administrador y reinicia.
+2. **Android Platform-Tools** (el `adb` oficial de Google): descarga el ZIP para Windows desde developer.android.com
+   y descomprímelo en `C:\platform-tools` (o indica la ruta en el panel del puente → Configuración).
+3. **En el móvil**: *Ajustes → Información del teléfono → Información de software* → toca 7 veces *Número de compilación*.
+   Después, en *Opciones de desarrollador*, activa la **Depuración USB**.
+4. Conecta el móvil por USB y acepta **«Permitir siempre desde este ordenador»**.
+5. **Instala la app** desde CallBridge: botón del móvil (arriba a la derecha) → *Instalar/actualizar app del móvil*.
+   O instala a mano el `CallBridge.apk` del artefacto `CallBridge-android` de GitHub Actions.
+6. **En Teams** → *Configuración → Dispositivos*: **Altavoz = CABLE-A Input** y **Micrófono = CABLE-B Output**.
+
+### En cada llamada
+
+1. Conecta el móvil por USB, abre CallBridge en el PC (el puente arranca solo) y en el móvil pulsa **Conectar**.
+2. En el móvil elige **Altavoz / Auricular / Bluetooth**. Si conectas unos cascos Bluetooth, se pasa a ellos sola.
+3. **Grabar** desde el móvil o desde el PC. Al detener la grabación, la llamada aparece en la lista
+   (y se transcribe sola si lo activas en la configuración del puente).
+
+Notas:
+- El Fold 5 no tiene conector de auriculares y el USB-C lo ocupa el cable, así que los cascos tienen que ser Bluetooth.
+- Todo va por el cable (`adb reverse` a `127.0.0.1`): ni el audio ni la conexión pasan por la red.
+- La app necesita Android 12 o superior.
 
 ## Privacidad: todo en local
 
@@ -169,8 +205,8 @@ Los modelos GGUF tienen su propia licencia (Qwen2.5: Apache 2.0; Llama: Llama Co
 ## Hoja de ruta
 
 - [x] Revisión en el PC: transcripción, diarización, pistas por hablante, etiquetado, resumen y exportación.
-- [ ] **Puente de audio**: APK (micro y altavoz del móvil por USB/ADB, botón de cascos o manos libres) + servicio en el PC
-      con VB-CABLE, que graba directamente en estéreo (Yo | Remoto) y abre la llamada aquí al colgar.
+- [x] **Puente de audio**: APK (micro y altavoz del móvil por USB/ADB, botón de altavoz/auricular/Bluetooth) + puente en el PC
+      con VB-CABLE, que graba en estéreo (Yo | Remoto) y crea la llamada al terminar.
 - [ ] Modo «casi en directo»: transcribir mientras dura la llamada (opcional).
 - [ ] Aceleración por GPU integrada (OpenVINO/Vulkan) si compensa.
 

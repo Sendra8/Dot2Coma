@@ -857,4 +857,108 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ------------------------------------------------------------------ puente con el móvil
+const BR = { st: null, lastRec: undefined };
+const fmtSecs = (s) => fmt(s);
+
+async function pollBridge() {
+  try { BR.st = await api("GET", "/api/bridge"); } catch { BR.st = null; }
+  renderBridge();
+  setTimeout(pollBridge, $("#dlg-bridge").open ? 400 : 1000);
+}
+
+function bridgeSteps(st) {
+  const steps = [];
+  const phoneDev = (st.devices || []).find((d) => d.state === "device");
+  steps.push(st.adb ? ["ok", "adb encontrado"] : ["bad", "Falta adb: descarga «Android SDK Platform-Tools», descomprímelo en C:\\platform-tools (o indica la ruta en Configuración)."]);
+  if (st.adb) {
+    steps.push(phoneDev && st.reverse ? ["ok", `Móvil por USB: ${phoneDev.model || phoneDev.serial}`]
+      : ["bad", st.adb_error || "Conecta el móvil por USB con la depuración USB activada."]);
+  }
+  steps.push(st.phone ? ["ok", `App conectada (${st.phone.model})`]
+    : ["wait", "Abre CallBridge en el móvil y pulsa «Conectar»."]);
+  if (st.phone) steps.push(st.audio ? ["ok", `Audio activo · retardo ${st.buffer_ms} ms` + (st.phone_state.route ? ` · en el móvil: ${st.phone_state.route}` : "")]
+    : ["bad", "Audio del PC: " + (st.audio_error || "sin iniciar")]);
+  return steps;
+}
+
+function renderBridge() {
+  const st = BR.st, pill = $("#btn-bridge");
+  pill.classList.remove("ok", "warn", "rec");
+  if (!st || !st.running) { $("#bridge-label").textContent = "Móvil: apagado"; }
+  else if (st.recording) { pill.classList.add("rec"); $("#bridge-label").textContent = "Grabando " + fmtSecs(st.rec_seconds); }
+  else if (st.phone && st.audio) { pill.classList.add("ok"); $("#bridge-label").textContent = "Móvil conectado"; }
+  else { pill.classList.add("warn"); $("#bridge-label").textContent = st.phone ? "Móvil: sin audio" : "Móvil: esperando"; }
+
+  if (st && BR.lastRec !== st.last_recording) {
+    if (BR.lastRec !== undefined && st.last_recording) {
+      toast("Grabación guardada como nueva llamada.", { label: "Ver", fn: showHome });
+      if (!S.p) loadList();
+    }
+    BR.lastRec = st.last_recording;
+  }
+  if (!$("#dlg-bridge").open || !st) return;
+  $("#bridge-steps").replaceChildren(...bridgeSteps(st).map(([cls, txt]) =>
+    h("li", { class: cls }, h("span", { class: "ic" }, cls === "ok" ? "✔" : cls === "bad" ? "✖" : "…"), h("span", {}, txt))));
+  $("#lvl-mic").style.width = Math.min(100, st.mic_level * 140) + "%";
+  $("#lvl-remote").style.width = Math.min(100, st.remote_level * 140) + "%";
+  const rb = $("#br-record");
+  rb.classList.toggle("rec", st.recording);
+  rb.textContent = st.recording ? `■ Detener grabación (${fmtSecs(st.rec_seconds)})` : "● Grabar llamada";
+  rb.disabled = !st.recording && !(st.phone && st.audio);
+  $("#br-toggle").textContent = st.running ? "Detener puente" : "Iniciar puente";
+  $("#br-install").hidden = !st.apk;
+  $("#br-install").disabled = !(st.devices || []).some((d) => d.state === "device");
+}
+
+$("#btn-bridge").onclick = async () => {
+  const s = await api("GET", "/api/settings");
+  $("#br-adb").value = s.adb_path || "";
+  $("#br-autostart").checked = !!s.bridge_autostart;
+  $("#br-autorec").checked = !!s.bridge_auto_record;
+  $("#br-autoproc").checked = !!s.bridge_auto_process;
+  $("#br-auto").textContent = s.bridge_auto_process ? " y se transcribe sola" : "";
+  $("#br-adb-pick").hidden = !s._has_picker;
+  const devs = await api("GET", "/api/bridge/devices");
+  const fill = (sel, list, cur) => {
+    const names = [...new Set(list.map((d) => d.name))];
+    if (cur && !names.includes(cur)) names.unshift(cur);
+    sel.replaceChildren(...names.map((n) => h("option", { value: n, selected: n === cur }, n)));
+  };
+  fill($("#br-out"), devs.outputs, s.bridge_to_teams);
+  fill($("#br-in"), devs.inputs, s.bridge_from_teams);
+  if (devs.error) $("#br-config").open = true;
+  $("#dlg-bridge").showModal();
+  renderBridge();
+};
+$("#br-record").onclick = async () => {
+  try { BR.st = await api("POST", "/api/bridge/record", { on: !(BR.st && BR.st.recording) }); renderBridge(); }
+  catch (e) { toast(e.message); }
+};
+$("#br-toggle").onclick = async () => {
+  try { BR.st = await api("POST", BR.st && BR.st.running ? "/api/bridge/stop" : "/api/bridge/start"); renderBridge(); }
+  catch (e) { toast(e.message); }
+};
+$("#br-install").onclick = async () => {
+  const b = $("#br-install"); b.disabled = true; b.textContent = "Instalando…";
+  try { await api("POST", "/api/bridge/install"); toast("App instalada y abierta en el móvil."); }
+  catch (e) { toast(e.message); }
+  b.textContent = "Instalar/actualizar app del móvil"; b.disabled = false;
+};
+$("#br-adb-pick").onclick = async () => {
+  try { const r = await api("POST", "/api/pick", { kind: "adb" }); if (r.path) $("#br-adb").value = r.path; } catch (e) { toast(e.message); }
+};
+$("#br-save").onclick = async () => {
+  try {
+    await api("PUT", "/api/settings", {
+      bridge_to_teams: $("#br-out").value, bridge_from_teams: $("#br-in").value, adb_path: $("#br-adb").value.trim(),
+      bridge_autostart: $("#br-autostart").checked, bridge_auto_record: $("#br-autorec").checked,
+      bridge_auto_process: $("#br-autoproc").checked,
+    });
+    if (BR.st && BR.st.running) { await api("POST", "/api/bridge/stop"); await api("POST", "/api/bridge/start"); }
+    toast("Configuración del puente guardada");
+  } catch (e) { toast(e.message); }
+};
+
+pollBridge();
 showHome();

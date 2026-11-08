@@ -34,6 +34,7 @@
       <button data-open="1">Abrir carpeta de la llamada</button>
     </div>
   </div>
+  <button id="btn-bridge" class="ghost bridge-pill" title="Puente con el móvil"><span class="dot"></span><span id="bridge-label">Móvil</span></button>
   <button id="btn-settings" class="ghost" title="Ajustes">⚙ Ajustes</button>
 </header>
 
@@ -183,6 +184,38 @@
       <label class="field-col">Carpeta de modelos <input name="models_dir"><span class="muted small" id="cur-models"></span></label>
     </fieldset>
     <div class="btns end"><button value="cancel" class="ghost">Cancelar</button><button value="ok" class="primary">Guardar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-bridge">
+  <form method="dialog">
+    <h3>Puente con el móvil</h3>
+    <ol class="steps" id="bridge-steps"></ol>
+    <div class="meters">
+      <label>Micro del móvil (Yo)<div class="meter"><div id="lvl-mic"></div></div></label>
+      <label>Teams (los demás)<div class="meter"><div id="lvl-remote"></div></div></label>
+    </div>
+    <div class="btns">
+      <button type="button" id="br-record" class="primary">● Grabar llamada</button>
+      <button type="button" id="br-toggle">Detener puente</button>
+      <button type="button" id="br-install">Instalar/actualizar app del móvil</button>
+    </div>
+    <p class="muted small">En Teams → Configuración → Dispositivos: <b>Altavoz = CABLE-A Input</b> y <b>Micrófono = CABLE-B Output</b>.
+      Al detener la grabación, la llamada aparece en la lista<span id="br-auto"></span>.</p>
+    <details id="br-config">
+      <summary>Configuración</summary>
+      <label class="field-col">El micro del móvil sale por (dispositivo de reproducción)
+        <select id="br-out"></select></label>
+      <label class="field-col">El audio de Teams entra por (dispositivo de grabación)
+        <select id="br-in"></select></label>
+      <label class="field-col">Ruta a adb.exe (vacío = buscar automáticamente)
+        <span class="row"><input id="br-adb" placeholder="C:\platform-tools\adb.exe"><button type="button" id="br-adb-pick" hidden>Examinar…</button></span></label>
+      <label class="field"><input type="checkbox" id="br-autostart"> Iniciar el puente al abrir CallBridge</label><br>
+      <label class="field"><input type="checkbox" id="br-autorec"> Grabar automáticamente al conectar el móvil</label><br>
+      <label class="field"><input type="checkbox" id="br-autoproc"> Transcribir y diarizar al terminar de grabar</label>
+      <div class="btns"><button type="button" id="br-save">Guardar configuración</button></div>
+    </details>
+    <div class="btns end"><button class="ghost">Cerrar</button></div>
   </form>
 </dialog>
 

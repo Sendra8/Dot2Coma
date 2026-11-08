@@ -14,11 +14,13 @@ import webbrowser
 
 from werkzeug.serving import make_server
 
+from . import config
 from .server import create_app
 
 FILE_TYPES = {
     "gguf": ("Modelos GGUF (*.gguf)", "Todos los archivos (*.*)"),
     "audio": ("Audio (*.wav;*.mp3;*.m4a;*.ogg;*.opus;*.flac;*.webm)", "Todos los archivos (*.*)"),
+    "adb": ("adb (adb.exe;adb)", "Todos los archivos (*.*)"),
     "folder": None,
 }
 
@@ -79,6 +81,11 @@ def main() -> None:
         return res[0] if res else None
 
     app = create_app(file_picker=picker if webview else None)
+    if config.load_settings().get("bridge_autostart"):
+        try:
+            app.config["bridge"].start()
+        except OSError as e:
+            print(f"Puente no iniciado: {e}")
     port = args.port or _free_port()
     server = make_server("127.0.0.1", port, app, threaded=True)
     url = f"http://127.0.0.1:{port}/"

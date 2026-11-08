@@ -33,11 +33,32 @@ def open_path(path: Path) -> None:
         subprocess.Popen(["xdg-open", str(path)])
 
 
-def create_app(file_picker=None) -> Flask:
+def bundled_apk() -> Path | None:
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    for p in (base / "callbridge" / "android" / "CallBridge.apk",
+              Path(__file__).resolve().parent / "android" / "CallBridge.apk"):
+        if p.exists():
+            return p
+    return None
+
+
+def create_app(file_picker=None, bridge_io_factory=None) -> Flask:
     """file_picker: callable(kind) -> ruta | None (lo aporta la ventana de escritorio)."""
+    from .bridge import Bridge, recording_name
+
     app = Flask(__name__, static_folder=None)
     runner = JobRunner()
     app.config["runner"] = runner
+
+    def on_recording(path: Path, started: float) -> None:
+        """Al terminar una grabación del puente: crear la llamada (y procesarla si está activado)."""
+        pid = import_audio(path, recording_name(started), move=True)
+        if config.load_settings().get("bridge_auto_process"):
+            submit_process(pid, 0, False)
+
+    bridge = Bridge(config.load_settings, lambda: config.data_dir() / "grabaciones", on_recording,
+                    io_factory=bridge_io_factory)
+    app.config["bridge"] = bridge
 
     def pdir(pid: str) -> Path:
         if not pid or "/" in pid or "\\" in pid or pid.startswith("."):
@@ -105,18 +126,27 @@ def create_app(file_picker=None) -> Flask:
         if ext not in AUDIO_EXTS:
             return jsonify({"error": f"Formato no soportado: {ext}"}), 400
         name = request.form.get("name") or Path(filename).stem
+        if f is not None:
+            pid = import_audio(None, name, ext=ext, saver=f.save)
+        else:
+            pid = import_audio(Path(src_path), name)
+        return jsonify(load_project(config.projects_dir() / pid)), 201
+
+    def import_audio(src: Path | None, name: str, move: bool = False, ext: str = "", saver=None) -> str:
+        ext = ext or src.suffix.lower()
         pid = new_project_id(name)
         d = config.projects_dir() / pid
         d.mkdir(parents=True)
         audio_name = "audio" + ext
-        if f is not None:
-            f.save(d / audio_name)
+        if saver:
+            saver(d / audio_name)
+        elif move:
+            shutil.move(str(src), d / audio_name)
         else:
-            shutil.copyfile(src_path, d / audio_name)
-        project = empty_project(pid, name, audio_name)
-        save_project(d, project)
+            shutil.copyfile(src, d / audio_name)
+        save_project(d, empty_project(pid, name, audio_name))
         _submit_analyze(pid)
-        return jsonify(project), 201
+        return pid
 
     def _submit_analyze(pid: str):
         def run(job):
@@ -176,9 +206,10 @@ def create_app(file_picker=None) -> Flask:
     def process(pid):
         pdir(pid)
         opts = request.get_json(silent=True) or {}
-        num = int(opts.get("num_speakers") or 0)
-        mix = bool(opts.get("mix_channels"))
+        job = submit_process(pid, int(opts.get("num_speakers") or 0), bool(opts.get("mix_channels")))
+        return jsonify(job.to_dict())
 
+    def submit_process(pid: str, num: int, mix: bool):
         def run(job):
             from . import pipeline
             d = config.projects_dir() / pid
@@ -191,7 +222,7 @@ def create_app(file_picker=None) -> Flask:
             p["name"], p["summary"] = fresh.get("name", p["name"]), fresh.get("summary", "")
             save_project(d, p)
 
-        return jsonify(runner.submit("procesar", pid, run).to_dict())
+        return runner.submit("procesar", pid, run)
 
     @app.post("/api/projects/<pid>/summary")
     def summary(pid):
@@ -232,6 +263,52 @@ def create_app(file_picker=None) -> Flask:
         text = fn(p)
         target.write_text(text, encoding="utf-8")
         return jsonify({"path": str(target), "text": text})
+
+    # -------------------------------------------------------------- puente
+    @app.get("/api/bridge")
+    def bridge_status():
+        st = bridge.status()
+        st["apk"] = bool(bundled_apk())
+        return jsonify(st)
+
+    @app.post("/api/bridge/start")
+    def bridge_start():
+        try:
+            bridge.start()
+        except OSError as e:
+            return jsonify({"error": f"No se pudo abrir el puerto: {e}"}), 500
+        return jsonify(bridge.status())
+
+    @app.post("/api/bridge/stop")
+    def bridge_stop():
+        bridge.stop()
+        return jsonify(bridge.status())
+
+    @app.post("/api/bridge/record")
+    def bridge_record():
+        bridge.set_recording(bool((request.get_json(silent=True) or {}).get("on")))
+        st = bridge.status()
+        if (request.get_json(silent=True) or {}).get("on") and not st["recording"]:
+            return jsonify({"error": st["audio_error"] or "No se pudo empezar a grabar"}), 409
+        return jsonify(st)
+
+    @app.get("/api/bridge/devices")
+    def bridge_devices():
+        try:
+            from .bridge import SoundDeviceIO
+            return jsonify(SoundDeviceIO().list_devices())
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"Audio no disponible: {e}", "inputs": [], "outputs": []})
+
+    @app.post("/api/bridge/install")
+    def bridge_install():
+        apk = bundled_apk()
+        if not apk:
+            return jsonify({"error": "Esta versión no incluye la APK. Descárgala del artefacto de GitHub Actions."}), 404
+        try:
+            return jsonify({"ok": True, "out": bridge.install_app(apk)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": str(e)}), 500
 
     @app.post("/api/projects/<pid>/open")
     def open_folder(pid):

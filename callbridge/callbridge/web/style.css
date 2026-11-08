@@ -187,6 +187,23 @@ legend { color: var(--text); font-weight: 600; padding: 0 4px; }
 .keys td { padding: 3px 12px 3px 0; }
 kbd { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 12px; }
 
+.bridge-pill { display: inline-flex; align-items: center; gap: 6px; }
+.bridge-pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.bridge-pill.ok .dot { background: #29a36a; }
+.bridge-pill.warn .dot { background: #d99a00; }
+.bridge-pill.rec { color: #fff; background: #d63b3b; border-color: #d63b3b; }
+.bridge-pill.rec .dot { background: #fff; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.steps { padding-left: 0; list-style: none; margin: 0 0 12px; }
+.steps li { padding: 5px 0; display: flex; gap: 8px; }
+.steps li .ic { width: 18px; text-align: center; flex-shrink: 0; }
+.steps li.ok .ic { color: #29a36a; } .steps li.bad .ic { color: var(--danger); } .steps li.wait .ic { color: var(--muted); }
+.meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.meter { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.meter > div { height: 100%; width: 0; background: #29a36a; transition: width .15s; }
+details summary { cursor: pointer; margin: 8px 0; font-weight: 600; }
+#br-record.rec { background: #d63b3b; border-color: #d63b3b; }
+
 #toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
   padding: 9px 16px; border-radius: 8px; box-shadow: var(--shadow); z-index: 50; display: flex; gap: 12px; align-items: center; max-width: 90vw;
