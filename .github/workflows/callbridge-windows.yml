@@ -1,0 +1,42 @@
+name: CallBridge – exe de Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "callbridge/**"
+      - ".github/workflows/callbridge-windows.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: callbridge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pytest
+          pip install llama-cpp-python --prefer-binary --only-binary=llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      - name: Pruebas
+        run: python -m pytest -q tests
+      - name: Empaquetar
+        run: pyinstaller --noconfirm CallBridge.spec
+      - name: Prueba de humo del exe
+        shell: pwsh
+        run: |
+          $env:CALLBRIDGE_HOME = "$env:RUNNER_TEMP\cbhome"
+          $p = Start-Process -FilePath dist\CallBridge\CallBridge.exe -ArgumentList "--no-open","--port","8799" -PassThru
+          Start-Sleep -Seconds 8
+          $r = Invoke-WebRequest -Uri http://127.0.0.1:8799/api/settings -UseBasicParsing
+          Stop-Process -Id $p.Id
+          if ($r.StatusCode -ne 200) { exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CallBridge-windows
+          path: callbridge/dist/CallBridge

@@ -1,0 +1,3 @@
+# Resumen con modelos GGUF (opcional). En Windows, instala la rueda precompilada para CPU:
+#   pip install llama-cpp-python --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python>=0.3

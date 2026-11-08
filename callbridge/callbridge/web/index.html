@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CallBridge</title>
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<header id="topbar">
+  <button id="btn-home" class="ghost" title="Volver a la lista de llamadas">☰ Llamadas</button>
+  <input id="proj-name" class="title-input" placeholder="Nombre de la llamada" hidden>
+  <div id="job" hidden>
+    <div class="job-text"><span id="job-stage"></span> <span id="job-pct"></span></div>
+    <div class="bar"><div id="job-bar"></div></div>
+    <button id="job-cancel" class="ghost small">Cancelar</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="save-state" class="muted"></span>
+  <button id="btn-process" class="primary" hidden>Transcribir y diarizar</button>
+  <div class="menu-wrap" id="export-wrap" hidden>
+    <button id="btn-export">Exportar ▾</button>
+    <div class="menu" id="export-menu" hidden>
+      <button data-export="md">Markdown (resumen + transcripción)</button>
+      <button data-export="txt">Texto (.txt)</button>
+      <button data-export="srt">Subtítulos (.srt)</button>
+      <hr>
+      <button data-copy="summary">Copiar resumen</button>
+      <button data-copy="transcript">Copiar transcripción</button>
+      <hr>
+      <button data-open="1">Abrir carpeta de la llamada</button>
+    </div>
+  </div>
+  <button id="btn-settings" class="ghost" title="Ajustes">⚙ Ajustes</button>
+</header>
+
+<!-- Lista de llamadas -->
+<main id="home">
+  <section id="drop" class="drop">
+    <div class="drop-inner">
+      <div class="drop-title">Arrastra aquí una grabación</div>
+      <div class="muted">WAV, MP3, M4A, OGG/Opus, FLAC… · Estéreo del puente: izquierda = Yo, derecha = Remoto</div>
+      <label class="btn primary">Importar audio<input type="file" id="file-input" accept="audio/*,video/*,.opus,.wav" hidden></label>
+      <div id="upload" class="muted" hidden></div>
+    </div>
+  </section>
+  <section>
+    <h2>Llamadas</h2>
+    <div id="project-list" class="cards"></div>
+  </section>
+</main>
+
+<!-- Editor -->
+<main id="editor" hidden>
+  <div id="transport">
+    <button id="btn-play" class="icon" title="Reproducir / pausa (Espacio)">▶</button>
+    <span id="clock" class="mono">00:00 / 00:00</span>
+    <label class="field">Velocidad
+      <select id="rate"><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>2</option></select>
+    </label>
+    <div class="seg-ctl" id="chan-ctl" title="Qué canal escuchar">
+      <button data-chan="both" class="on">Ambos</button><button data-chan="L">Solo Yo</button><button data-chan="R">Solo remoto</button>
+    </div>
+    <span class="spacer"></span>
+    <label class="field">Zoom <input type="range" id="zoom" min="0" max="1000" value="0"></label>
+    <button id="btn-fit" class="ghost small">Ajustar</button>
+    <button id="btn-undo" class="ghost small" title="Deshacer (Ctrl+Z)">↶</button>
+    <button id="btn-redo" class="ghost small" title="Rehacer (Ctrl+Shift+Z)">↷</button>
+    <button id="btn-help" class="ghost small" title="Atajos">?</button>
+  </div>
+
+  <div id="tl-wrap">
+    <div id="tl-heads"></div>
+    <div id="viewport">
+      <div id="inner">
+        <canvas id="cv-ruler" class="cv"></canvas>
+        <div id="lanes"></div>
+        <div id="playhead"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom">
+    <section id="transcript-pane">
+      <div class="pane-head">
+        <h3>Transcripción</h3>
+        <label class="field small"><input type="checkbox" id="follow" checked> Seguir reproducción</label>
+        <input id="search" type="search" placeholder="Buscar…">
+      </div>
+      <div id="transcript"></div>
+    </section>
+    <section id="side-pane">
+      <div class="tabs">
+        <button data-tab="seg" class="on">Segmento</button>
+        <button data-tab="sum">Resumen</button>
+      </div>
+      <div id="tab-seg" class="tab">
+        <div id="inspector-empty" class="muted">Selecciona un bloque en la línea de tiempo o una frase de la transcripción.</div>
+        <div id="inspector" hidden>
+          <label class="field-col">Hablante <select id="ins-speaker"></select></label>
+          <div class="row">
+            <label class="field-col">Inicio (s) <input id="ins-start" type="number" step="0.05" min="0"></label>
+            <label class="field-col">Fin (s) <input id="ins-end" type="number" step="0.05" min="0"></label>
+          </div>
+          <label class="field-col">Texto <textarea id="ins-text" rows="5"></textarea></label>
+          <div id="ins-meta" class="muted small"></div>
+          <div class="btns">
+            <button id="ins-play">▶ Reproducir</button>
+            <button id="ins-split" title="S">Dividir en el cursor</button>
+            <button id="ins-merge" title="M">Unir con el siguiente</button>
+            <button id="ins-delete" class="danger" title="Supr">Eliminar</button>
+          </div>
+        </div>
+      </div>
+      <div id="tab-sum" class="tab" hidden>
+        <div class="btns">
+          <button id="btn-summary" class="primary">Generar resumen</button>
+          <button id="btn-copy-summary">Copiar</button>
+        </div>
+        <div id="sum-hint" class="muted small"></div>
+        <textarea id="summary" placeholder="Aquí aparecerá el resumen. Puedes editarlo."></textarea>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Diálogos -->
+<dialog id="dlg-process">
+  <form method="dialog">
+    <h3>Transcribir y diarizar</h3>
+    <p id="proc-info" class="muted"></p>
+    <label class="field-col">Nº de hablantes remotos
+      <select id="proc-num"><option value="0">Automático</option></select>
+    </label>
+    <label class="field" id="proc-mix-wrap"><input type="checkbox" id="proc-mix"> Mezclar canales (no es una grabación del puente)</label>
+    <p id="proc-warn" class="warn" hidden>Se reemplazarán la transcripción y los hablantes actuales.</p>
+    <div class="btns end"><button value="cancel" class="ghost">Cancelar</button><button value="ok" class="primary">Empezar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-settings">
+  <form method="dialog" id="settings-form">
+    <h3>Ajustes</h3>
+    <fieldset><legend>Transcripción (Whisper)</legend>
+      <label class="field-col">Modelo
+        <input name="whisper_model" list="whisper-models">
+        <datalist id="whisper-models"><option>large-v3-turbo</option><option>large-v3</option><option>medium</option><option>small</option><option>base</option><option>tiny</option></datalist>
+        <span class="muted small">Nombre de modelo (se descarga la primera vez) o ruta a una carpeta CTranslate2.</span>
+      </label>
+      <div class="row">
+        <label class="field-col">Precisión <select name="whisper_compute_type"><option>int8</option><option>int8_float32</option><option>float32</option></select></label>
+        <label class="field-col">Idioma <select name="language"><option value="auto">Automático (ES/EN mezclado)</option><option value="es">Español</option><option value="en">Inglés</option></select></label>
+        <label class="field-col">Hilos CPU <input name="cpu_threads" type="number" min="0" max="64"><span class="muted small">0 = auto</span></label>
+      </div>
+      <label class="field-col">Contexto inicial <input name="initial_prompt"><span class="muted small">Ayuda con nombres propios y jerga (p. ej. nombres de proyectos).</span></label>
+    </fieldset>
+    <fieldset><legend>Diarización</legend>
+      <div class="row">
+        <label class="field-col">Umbral de agrupación <input name="diar_threshold" type="number" step="0.05" min="0.1" max="1.5"><span class="muted small">Menor = más hablantes</span></label>
+        <label class="field-col">Umbral de eco (dB) <input name="echo_ratio_db" type="number" step="1"><span class="muted small">Marca frases de “Yo” que parecen eco</span></label>
+      </div>
+      <label class="field-col">Modelo de voz (ONNX) <input name="diar_embedding"></label>
+    </fieldset>
+    <fieldset><legend>Resumen (modelo GGUF)</legend>
+      <label class="field-col">Ruta al .gguf
+        <span class="row"><input name="gguf_path" placeholder="C:\modelos\Qwen2.5-7B-Instruct-Q4_K_M.gguf"><button type="button" id="pick-gguf" hidden>Examinar…</button></span>
+      </label>
+      <div class="row">
+        <label class="field-col">Contexto (tokens) <input name="llm_ctx" type="number" step="1024" min="2048"></label>
+        <label class="field-col">Hilos CPU <input name="llm_threads" type="number" min="0" max="64"></label>
+      </div>
+      <label class="field-col">Instrucciones del resumen <textarea name="summary_prompt" rows="6"></textarea></label>
+    </fieldset>
+    <fieldset><legend>Carpetas</legend>
+      <label class="field-col">Carpeta de llamadas <input name="projects_dir"><span class="muted small" id="cur-projects"></span></label>
+      <label class="field-col">Carpeta de modelos <input name="models_dir"><span class="muted small" id="cur-models"></span></label>
+    </fieldset>
+    <div class="btns end"><button value="cancel" class="ghost">Cancelar</button><button value="ok" class="primary">Guardar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-help">
+  <form method="dialog">
+    <h3>Cómo revisar</h3>
+    <ul class="help">
+      <li><b>Clic</b> en un bloque: lo selecciona y salta a ese punto. <b>Doble clic</b>: lo reproduce.</li>
+      <li><b>Arrastra un bloque</b> a otra pista para cambiar de hablante.</li>
+      <li><b>Arrastra los bordes</b> de un bloque para ajustar el corte.</li>
+      <li>Clic en la regla o en la onda: mover el cursor. <b>Ctrl + rueda</b>: zoom.</li>
+      <li>Renombra a un hablante en su cabecera; el cambio se aplica a la transcripción y al resumen.</li>
+    </ul>
+    <table class="keys">
+      <tr><td><kbd>Espacio</kbd></td><td>Reproducir / pausa</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Retroceder / avanzar 5 s</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Segmento anterior / siguiente</td></tr>
+      <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Asignar el segmento al hablante n.º</td></tr>
+      <tr><td><kbd>S</kbd></td><td>Dividir en el cursor</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Unir con el siguiente</td></tr>
+      <tr><td><kbd>Supr</kbd></td><td>Eliminar segmento</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Deshacer / rehacer</td></tr>
+    </table>
+    <div class="btns end"><button class="primary">Entendido</button></div>
+  </form>
+</dialog>
+
+<div id="toast" hidden></div>
+<audio id="audio" preload="auto"></audio>
+<script src="/web/app.js"></script>
+</body>
+</html>
