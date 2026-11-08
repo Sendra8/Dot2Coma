@@ -796,6 +796,7 @@ $("#export-menu").addEventListener("click", async (e) => {
       toast("Guardado: " + r.path, { label: "Abrir carpeta", fn: () => api("POST", `/api/projects/${S.p.id}/open`, { sub: "exportado" }) });
     } else if (b.dataset.copy === "summary") copyText(S.p.summary || "");
     else if (b.dataset.copy === "transcript") copyText((await api("POST", `/api/projects/${S.p.id}/export/txt`)).text);
+    else if (b.dataset.copy === "claude") copyText((await api("POST", `/api/projects/${S.p.id}/export/claude`)).text);
     else if (b.dataset.open) api("POST", `/api/projects/${S.p.id}/open`, {});
   } catch (err) { toast(err.message); }
 });

@@ -149,8 +149,56 @@ def export_srt(project: dict) -> str:
     return "\n".join(blocks)
 
 
+def export_claude(project: dict) -> str:
+    """Transcripción compacta para pegar/adjuntar en un chat con Claude (skill «acta-llamada»)."""
+    speakers = project.get("speakers", [])
+    counts: dict[str, float] = {}
+    for s in project.get("segments", []):
+        counts[s["speaker"]] = counts.get(s["speaker"], 0) + (s["end"] - s["start"])
+    out = [
+        "<!-- callbridge-transcript v1 · usar con la skill acta-llamada -->",
+        f"# Transcripción: {project.get('name', 'Llamada')}",
+        "",
+        f"- Fecha: {project.get('created', '')}",
+        f"- Duración: {fmt_clock(project.get('duration', 0))}",
+        "- Origen: transcripción automática (Whisper) y diarización automática, revisadas a mano.",
+        "",
+        "## Participantes",
+        "",
+    ]
+    for sp in speakers:
+        lab = sp.get("label") or sp["id"]
+        if sp["id"] == ME_ID:
+            note = "quien grabó la llamada (canal propio, identificación segura)"
+        elif re.fullmatch(r"N\d+", lab):
+            note = "sin identificar"
+        else:
+            note = "identificado por el usuario"
+        out.append(f"- **{lab}**: {note} · habla {fmt_clock(counts.get(sp['id'], 0))}")
+    flagged = sum(1 for s in project.get("segments", []) if s.get("flag"))
+    if flagged:
+        out += ["", f"> {flagged} frase(s) marcadas con ⚠ pueden ser eco del audio remoto; dales menos peso."]
+    out += ["", "## Transcripción", ""]
+    labels = speaker_labels(project)
+    last = None
+    for seg in ordered_segments(project):
+        text = (seg.get("text") or "").strip()
+        if not text:
+            continue
+        if seg.get("flag"):
+            text = "⚠ " + text
+        if seg["speaker"] == last and out[-1]:
+            out[-1] += " " + text
+        else:
+            out.append(f"[{fmt_clock(seg['start'])}] {labels.get(seg['speaker'], seg['speaker'])}: {text}")
+        last = seg["speaker"]
+    return "\n".join(out).rstrip() + "\n"
+
+
+# formato -> (función, tipo MIME, sufijo del archivo)
 EXPORTERS = {
-    "md": (export_md, "text/markdown"),
-    "txt": (export_txt, "text/plain"),
-    "srt": (export_srt, "application/x-subrip"),
+    "md": (export_md, "text/markdown", ".md"),
+    "txt": (export_txt, "text/plain", ".txt"),
+    "srt": (export_srt, "application/x-subrip", ".srt"),
+    "claude": (export_claude, "text/markdown", "_para_claude.md"),
 }

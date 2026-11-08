@@ -223,12 +223,12 @@ def create_app(file_picker=None) -> Flask:
         d = pdir(pid)
         if fmt not in EXPORTERS:
             abort(404)
-        fn, _ = EXPORTERS[fmt]
+        fn, _, suffix = EXPORTERS[fmt]
         p = load_project(d)
         out_dir = d / "exportado"
         out_dir.mkdir(exist_ok=True)
         safe = "".join(c if c.isalnum() or c in " -_" else "_" for c in p.get("name", "llamada")).strip() or "llamada"
-        target = out_dir / f"{safe}.{fmt}"
+        target = out_dir / f"{safe}{suffix}"
         text = fn(p)
         target.write_text(text, encoding="utf-8")
         return jsonify({"path": str(target), "text": text})

@@ -25,8 +25,21 @@ Todo se procesa en local: el audio no sale del PC.
    - Escucha **solo tu canal** o **solo el remoto**, a 0,75×–2×.
    - Transcripción sincronizada con la reproducción, editable y con búsqueda.
    - Las frases de «Yo» que parecen **eco** del remoto se marcan con rayas para revisarlas.
-5. **Resume** con cualquier modelo **GGUF** que elijas (Qwen, Llama, Gemma, Mistral…). Si la llamada es larga, la resume por bloques.
+5. **Resumen**, con dos opciones:
+   - **Con Claude (recomendado):** *Exportar → Copiar para Claude* y pégalo en un chat con la skill
+     [`acta-llamada`](claude-skill/acta-llamada/SKILL.md). Te devuelve el acta y propone quién puede ser cada N# según
+     las pistas del texto. No hace falta descargar ningún modelo GGUF. Solo se envía el texto revisado, nunca el audio.
+   - **En local:** con cualquier modelo **GGUF** que elijas (Qwen, Llama, Gemma, Mistral…). Si la llamada es larga, la resume por bloques.
+     Útil si la llamada no puede salir del PC.
 6. **Exporta** a Markdown (resumen + transcripción), TXT o SRT, o lo **copia** al portapapeles para pegarlo en Teams, correo, etc.
+
+### Instalar la skill en Claude
+
+1. Comprime la carpeta `claude-skill/acta-llamada` en un ZIP (clic derecho → *Comprimir*). La carpeta debe quedar en la raíz del ZIP.
+2. En claude.ai: *Configuración → Capacidades → Skills → Subir skill* y elige el ZIP.
+3. En un chat, pega el texto de *Copiar para Claude* (o adjunta el archivo `_para_claude.md`) y pide «haz el acta».
+
+> Revisa la política de tu empresa antes de subir el contenido de reuniones de trabajo a un servicio externo.
 
 Todo se guarda solo: cada llamada es una carpeta con `audio.*`, `project.json` y `exportado/`.
 
@@ -62,7 +75,7 @@ python -m callbridge --browser       # o en el navegador
 | Transcripción | Whisper `large-v3-turbo` int8 (faster-whisper) | ~0,8 GB | Hugging Face, automático |
 | Segmentación de voz | pyannote segmentation 3.0 (ONNX) | ~6 MB | GitHub de sherpa-onnx, automático |
 | Huella de voz para agrupar | NeMo TitaNet small (ONNX) | ~40 MB | GitHub de sherpa-onnx, automático |
-| Resumen | **El que elijas** (.gguf). Recomendado: `Qwen2.5-7B-Instruct-Q4_K_M.gguf` | ~4,7 GB | Lo descargas tú y lo seleccionas en *Ajustes* |
+| Resumen local (opcional) | **El que elijas** (.gguf). Recomendado: `Qwen2.5-7B-Instruct-Q4_K_M.gguf` | ~4,7 GB | Lo descargas tú y lo seleccionas en *Ajustes* |
 
 Con un i5 de 12.ª generación, una llamada de 1 hora tarda aproximadamente entre 20 y 40 minutos en total.
 Si tu equipo va justo, prueba los modelos Whisper `small` o `medium` en *Ajustes*, aunque son peores con los idiomas mezclados.

@@ -84,3 +84,16 @@ def test_chunk_lines_respects_budget():
     assert "\n".join(chunks).count("línea") == 50
     big = chunk_lines(["palabra " * 500], count, 100)
     assert all(count(c) <= 100 for c in big) and sum(count(c) for c in big) == 500
+
+
+def test_export_claude():
+    p = _proj()
+    p["speakers"].append({"id": "N2", "label": "N2"})
+    p["segments"].append({"id": "e", "speaker": "N2", "start": 70, "end": 71, "text": "ok", "flag": "posible eco"})
+    md = project.export_claude(p)
+    assert md.startswith("<!-- callbridge-transcript v1")
+    assert "- **Yo**: quien grabó la llamada" in md
+    assert "- **Marta**: identificado por el usuario" in md
+    assert "- **N2**: sin identificar" in md
+    assert "[00:03] Marta: Hola. ¿Empezamos?" in md
+    assert "[01:10] N2: ⚠ ok" in md and "1 frase(s) marcadas" in md
