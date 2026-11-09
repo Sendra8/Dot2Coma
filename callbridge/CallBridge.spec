@@ -11,7 +11,7 @@ if os.path.exists("callbridge/android/CallBridge.apk"):   # la APK que instala e
 binaries = []
 hiddenimports = []
 for pkg in ("faster_whisper", "ctranslate2", "sherpa_onnx", "onnxruntime", "av", "webview", "llama_cpp",
-            "sounddevice", "_sounddevice_data", "soundfile", "_soundfile_data"):
+            "sounddevice", "_sounddevice_data", "soundfile", "_soundfile_data", "pyaudiowpatch"):
     try:
         d, b, h = collect_all(pkg)
     except Exception:  # paquete opcional no instalado (p. ej. llama_cpp)

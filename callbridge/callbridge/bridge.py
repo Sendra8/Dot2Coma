@@ -118,6 +118,22 @@ def level(x: np.ndarray) -> float:
     return float(np.abs(x).max(initial=0)) / 32768.0 if len(x) else 0.0
 
 
+def to_mono_48k(data: np.ndarray, channels: int, rate: int) -> np.ndarray:
+    """int16 entrelazado (N*channels) -> int16 mono a 48 kHz (mezcla canales y remuestrea)."""
+    x = data.reshape(-1, channels).astype(np.float32).mean(axis=1) if channels > 1 else data.astype(np.float32)
+    if rate != RATE and len(x):
+        n = int(round(len(x) * RATE / rate))
+        x = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x)
+    return np.clip(x, -32768, 32767).astype(np.int16)
+
+
+def choose_mode(setting: str, output_names: list[str]) -> str:
+    """'ab' = VB-CABLE A+B; 'single' = un solo VB-CABLE + captura loopback de un altavoz virtual."""
+    if setting in ("ab", "single"):
+        return setting
+    return "ab" if any("cable-a" in n.lower() for n in output_names) else "single"
+
+
 # --------------------------------------------------------------------------- #
 # Dispositivos de audio del PC
 # --------------------------------------------------------------------------- #
@@ -152,9 +168,17 @@ class SoundDeviceIO:
         return cands[0]["index"]
 
     def start(self, out_name: str, in_name: str,
-              out_cb: Callable[[int], np.ndarray], in_cb: Callable[[np.ndarray], None]) -> None:
+              out_cb: Callable[[int], np.ndarray], in_cb: Callable[[np.ndarray], None],
+              loopback: bool = False) -> None:
+        """out_name: dónde suena el micro del móvil (hacia Teams).
+        in_name: de dónde sale el audio de Teams (dispositivo de entrada) o, con loopback=True,
+        el altavoz virtual cuyo sonido se captura (WASAPI loopback)."""
         sd = self.sd
-        out_idx, in_idx = self.find(out_name, "out"), self.find(in_name, "in")
+        out_idx = self.find(out_name, "out")
+        if loopback:
+            self._start_loopback(out_idx, in_name, out_cb, in_cb)
+            return
+        in_idx = self.find(in_name, "in")
 
         def extra(idx):
             api = sd.query_hostapis(sd.query_devices(idx)["hostapi"])["name"]
@@ -175,7 +199,55 @@ class SoundDeviceIO:
         for s in self.streams:
             s.start()
 
+    def _start_loopback(self, out_idx: int, spk_name: str, out_cb, in_cb) -> None:
+        """Captura lo que Teams reproduce en `spk_name`. WASAPI no entrega datos cuando no suena
+        nada, así que un hilo marca el ritmo de 10 ms y rellena con silencio."""
+        import pyaudiowpatch as pa
+        sd = self.sd
+        if not spk_name:
+            raise RuntimeError("Elige el «altavoz virtual» que usará Teams (p. ej. Steam Streaming Speakers) en la configuración del puente.")
+        pa_ = pa.PyAudio()
+        self._pa = pa_
+        target = None
+        for lb in pa_.get_loopback_device_info_generator():
+            if spk_name.lower() in lb["name"].lower():
+                target = lb
+                break
+        if target is None:
+            raise RuntimeError(f"No encuentro el altavoz «{spk_name}» para capturar su audio.")
+        rate, ch = int(target["defaultSampleRate"]), int(target["maxInputChannels"])
+        buf = JitterBuffer(30, 120)
+
+        def pcb(in_data, frame_count, time_info, status):
+            buf.write(to_mono_48k(np.frombuffer(in_data, dtype=np.int16), ch, rate))
+            return (None, pa.paContinue)
+
+        self._pa_stream = pa_.open(format=pa.paInt16, channels=ch, rate=rate, input=True,
+                                   input_device_index=target["index"], frames_per_buffer=rate // 100,
+                                   stream_callback=pcb)
+        api = sd.query_hostapis(sd.query_devices(out_idx)["hostapi"])["name"]
+        extra = sd.WasapiSettings(auto_convert=True) if "WASAPI" in api and hasattr(sd, "WasapiSettings") else None
+
+        def ocb(outdata, frames, t, status):
+            outdata[:, 0] = out_cb(frames)
+
+        out = sd.OutputStream(device=out_idx, samplerate=RATE, channels=1, dtype="int16", blocksize=FRAME,
+                              latency="low", extra_settings=extra, callback=ocb)
+        out.start()
+        self.streams = [out]
+        self._run = True
+
+        def driver():
+            nxt = time.perf_counter()
+            while self._run:
+                in_cb(buf.read(FRAME))
+                nxt += FRAME / RATE
+                time.sleep(max(0.0, nxt - time.perf_counter()))
+        self._driver = threading.Thread(target=driver, daemon=True, name="loopback-clock")
+        self._driver.start()
+
     def stop(self) -> None:
+        self._run = False
         for s in self.streams:
             try:
                 s.stop()
@@ -183,6 +255,19 @@ class SoundDeviceIO:
             except Exception:  # noqa: BLE001
                 pass
         self.streams = []
+        stream, self._pa_stream = getattr(self, "_pa_stream", None), None
+        if stream:
+            try:
+                stream.stop_stream()
+                stream.close()
+            except Exception:  # noqa: BLE001
+                pass
+        pa_, self._pa = getattr(self, "_pa", None), None
+        if pa_:
+            try:
+                pa_.terminate()
+            except Exception:  # noqa: BLE001
+                pass
 
 
 # --------------------------------------------------------------------------- #
@@ -284,7 +369,7 @@ class Bridge:
             "running": False, "adb": None, "adb_error": "", "devices": [], "reverse": False,
             "phone": None, "phone_state": {}, "audio": False, "audio_error": "",
             "mic_level": 0.0, "remote_level": 0.0, "recording": False, "rec_seconds": 0.0,
-            "last_recording": None, "port": 0,
+            "last_recording": None, "port": 0, "mode": "ab",
         }
 
     # ------------------------------------------------------------ ciclo de vida
@@ -466,9 +551,15 @@ class Bridge:
         self.rec_mic.clear()
         try:
             self.io = self.io_factory()
-            self.io.start(s.get("bridge_to_teams", "CABLE-B Input"), s.get("bridge_from_teams", "CABLE-A Output"),
-                          self._out_cb, self._in_cb)
-            self.state.update(audio=True, audio_error="")
+            names = [d["name"] for d in self.io.list_devices()["outputs"]] if hasattr(self.io, "list_devices") else []
+            mode = choose_mode(s.get("bridge_mode", "auto"), names) if names else "ab"
+            if mode == "single":
+                self.io.start(s.get("bridge_single_out", "CABLE Input"), s.get("bridge_loopback", ""),
+                              self._out_cb, self._in_cb, loopback=True)
+            else:
+                self.io.start(s.get("bridge_to_teams", "CABLE-B Input"), s.get("bridge_from_teams", "CABLE-A Output"),
+                              self._out_cb, self._in_cb)
+            self.state.update(audio=True, audio_error="", mode=mode)
         except Exception as e:  # noqa: BLE001
             self.io = None
             self.state.update(audio=False, audio_error=str(e))

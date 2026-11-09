@@ -48,6 +48,9 @@ DEFAULTS: dict = {
     # Puente de audio con el móvil
     "bridge_autostart": True,
     "bridge_port": 28200,
+    "bridge_mode": "auto",                  # auto | ab (VB-CABLE A+B) | single (un solo VB-CABLE)
+    "bridge_single_out": "CABLE Input",     # modo un cable: el micro del móvil suena aquí (Teams: micrófono «CABLE Output»)
+    "bridge_loopback": "Steam Streaming Speakers",  # modo un cable: altavoz virtual silencioso que usa Teams (se captura su audio)
     "bridge_to_teams": "CABLE-B Input",     # aquí suena el micro del móvil (en Teams: micrófono «CABLE-B Output»)
     "bridge_from_teams": "CABLE-A Output",  # de aquí sale lo que dicen los demás (en Teams: altavoz «CABLE-A Input»)
     "adb_path": "",

@@ -907,6 +907,9 @@ function renderBridge() {
   rb.textContent = st.recording ? `■ Detener grabación (${fmtSecs(st.rec_seconds)})` : "● Grabar llamada";
   rb.disabled = !st.recording && !(st.phone && st.audio);
   $("#br-toggle").textContent = st.running ? "Detener puente" : "Iniciar puente";
+  $("#br-teams-hint").innerHTML =st.mode === "single"
+    ? "En Teams → Configuración → Dispositivos: <b>Altavoz = el altavoz virtual elegido en Configuración</b> y <b>Micrófono = CABLE Output</b>."
+    : "En Teams → Configuración → Dispositivos: <b>Altavoz = CABLE-A Input</b> y <b>Micrófono = CABLE-B Output</b>.";
   $("#br-install").hidden = !st.apk;
   $("#br-install").disabled = !(st.devices || []).some((d) => d.state === "device");
 }
@@ -925,6 +928,8 @@ $("#btn-bridge").onclick = async () => {
     if (cur && !names.includes(cur)) names.unshift(cur);
     sel.replaceChildren(...names.map((n) => h("option", { value: n, selected: n === cur }, n)));
   };
+  $("#br-mode").value = s.bridge_mode || "auto";
+  fill($("#br-loop"), devs.outputs.filter((d) => !/cable/i.test(d.name)), s.bridge_loopback);
   fill($("#br-out"), devs.outputs, s.bridge_to_teams);
   fill($("#br-in"), devs.inputs, s.bridge_from_teams);
   if (devs.error) $("#br-config").open = true;
@@ -951,6 +956,7 @@ $("#br-adb-pick").onclick = async () => {
 $("#br-save").onclick = async () => {
   try {
     await api("PUT", "/api/settings", {
+      bridge_mode: $("#br-mode").value, bridge_loopback: $("#br-loop").value,
       bridge_to_teams: $("#br-out").value, bridge_from_teams: $("#br-in").value, adb_path: $("#br-adb").value.trim(),
       bridge_autostart: $("#br-autostart").checked, bridge_auto_record: $("#br-autorec").checked,
       bridge_auto_process: $("#br-autoproc").checked,

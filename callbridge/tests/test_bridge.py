@@ -193,3 +193,44 @@ def test_bridge_full_call_and_recording(app):
     phone.close()
     assert wait_for(lambda: len(c.get("/api/projects").json) == 2)
     assert wait_for(lambda: not c.get("/api/bridge").json["audio"])
+
+
+def test_to_mono_48k_downmix_and_resample():
+    st = np.stack([tone(440, 0, 4410, 6000), tone(440, 0, 4410, 2000)], axis=1)   # 44,1 kHz estéreo
+    pass_in = np.zeros((4410, 2), np.int16)
+    t = np.arange(4410) / 44100
+    pass_in[:, 0] = (6000 * np.sin(2 * np.pi * 1000 * t)).astype(np.int16)
+    pass_in[:, 1] = (2000 * np.sin(2 * np.pi * 1000 * t)).astype(np.int16)
+    out = B.to_mono_48k(pass_in.reshape(-1), 2, 44100)
+    assert abs(len(out) - 4800) <= 1
+    assert abs(peak_hz(out) - 1000) < 30
+    assert 3500 < np.abs(out).max() < 4500                # media de 6000 y 2000
+    mono = B.to_mono_48k(tone(440, 0, 480), 1, 48000)
+    assert len(mono) == 480
+
+
+def test_choose_mode():
+    assert B.choose_mode("auto", ["CABLE-A Input (VB-Audio Cable A)", "Altavoces"]) == "ab"
+    assert B.choose_mode("auto", ["CABLE Input (VB-Audio Virtual Cable)", "Altavoces"]) == "single"
+    assert B.choose_mode("single", ["CABLE-A Input"]) == "single"
+    assert B.choose_mode("ab", []) == "ab"
+
+
+def test_single_mode_uses_loopback_device(tmp_path, monkeypatch):
+    monkeypatch.setenv("CALLBRIDGE_HOME", str(tmp_path))
+    from callbridge import config
+
+    class SingleIO(FakeIO):
+        def list_devices(self):
+            return {"inputs": [], "outputs": [{"name": "CABLE Input (VB-Audio Virtual Cable)"}, {"name": "Steam Streaming Speakers"}]}
+
+        def start(self, out_name, in_name, out_cb, in_cb, loopback=False):
+            self.called = (out_name, in_name, loopback)
+            super().start(out_name, in_name, out_cb, in_cb)
+
+    config.save_settings({"bridge_port": 28999})
+    br = B.Bridge(config.load_settings, lambda: tmp_path / "rec", io_factory=SingleIO)
+    br._start_audio()
+    assert br.state["audio"] and br.state["mode"] == "single"
+    assert br.io.called == ("CABLE Input", "Steam Streaming Speakers", True)
+    br._stop_audio()

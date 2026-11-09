@@ -104,6 +104,15 @@ Teams ◀─micrófono── CABLE-B ◀── CallBridge (PC) ◀══USB═�
    O instala a mano el `CallBridge.apk` del artefacto `CallBridge-android` de GitHub Actions.
 6. **En Teams** → *Configuración → Dispositivos*: **Altavoz = CABLE-A Input** y **Micrófono = CABLE-B Output**.
 
+### Con un solo VB-CABLE (el normal, no el A+B)
+
+CallBridge lo detecta solo («Automático») si no hay VB-CABLE A+B:
+- **Micrófono de Teams:** `CABLE Output`. Ahí suena tu voz del móvil.
+- **Altavoz de Teams:** un altavoz virtual que no suene, por ejemplo `Steam Streaming Speakers`
+  (o el de cualquier otro software de audio virtual). CallBridge captura lo que Teams reproduce en él (WASAPI loopback) y lo manda al móvil.
+  Elígelo en el panel del puente → Configuración → «altavoz virtual silencioso».
+- No elijas los altavoces reales del portátil: lo que Teams reproduce sonaría en el portátil y en el móvil.
+
 ### En cada llamada
 
 1. Conecta el móvil por USB, abre CallBridge en el PC (el puente arranca solo) y en el móvil pulsa **Conectar**.

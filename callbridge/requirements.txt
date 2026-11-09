@@ -6,3 +6,4 @@ flask>=3.0
 pywebview>=5.0
 sounddevice>=0.4.6
 soundfile>=0.12
+PyAudioWPatch>=0.2.12; sys_platform == "win32"
