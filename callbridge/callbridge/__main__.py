@@ -52,8 +52,24 @@ def _privacy() -> None:
         pass
 
 
+def _unblock_own_files() -> None:
+    """Windows marca los archivos de un ZIP descargado («Mark of the Web») y .NET se niega
+    entonces a cargar Python.Runtime.dll (la ventana de pywebview). Se quita esa marca a
+    los archivos de la propia aplicación."""
+    if os.name != "nt" or not getattr(sys, "frozen", False):
+        return
+    base = os.path.dirname(sys.executable)
+    for root, _dirs, files in os.walk(base):
+        for f in files:
+            try:
+                os.remove(os.path.join(root, f) + ":Zone.Identifier")
+            except OSError:
+                pass
+
+
 def main() -> None:
     _ensure_streams()
+    _unblock_own_files()
     _privacy()
     ap = argparse.ArgumentParser(description="CallBridge – revisión de llamadas")
     ap.add_argument("--browser", action="store_true", help="abrir en el navegador en lugar de ventana propia")
@@ -92,10 +108,24 @@ def main() -> None:
     print(f"CallBridge en {url}")
 
     if webview:
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        window_ref["w"] = webview.create_window("CallBridge", url, width=1400, height=900, min_size=(900, 600))
-        webview.start()
-        server.shutdown()
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        try:
+            window_ref["w"] = webview.create_window("CallBridge", url, width=1400, height=900, min_size=(900, 600))
+            webview.start()
+            server.shutdown()
+            return
+        except Exception:  # noqa: BLE001 - p. ej. .NET/WebView2 no disponible
+            import traceback
+            traceback.print_exc()
+            print("No se pudo abrir la ventana; se abre en el navegador.")
+            window_ref.clear()
+            app.config["file_picker"] = None
+            webbrowser.open(url)
+            try:
+                server_thread.join()
+            except KeyboardInterrupt:
+                pass
     else:
         if not args.no_open:
             threading.Timer(0.8, lambda: webbrowser.open(url)).start()

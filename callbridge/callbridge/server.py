@@ -47,6 +47,7 @@ def create_app(file_picker=None, bridge_io_factory=None) -> Flask:
     from .bridge import Bridge, recording_name
 
     app = Flask(__name__, static_folder=None)
+    app.config["file_picker"] = file_picker   # puede desactivarse si la ventana de escritorio falla
     runner = JobRunner()
     app.config["runner"] = runner
 
@@ -83,7 +84,7 @@ def create_app(file_picker=None, bridge_io_factory=None) -> Flask:
         s = config.load_settings()
         s["_projects_dir"] = str(config.projects_dir(s))
         s["_models_dir"] = str(config.models_dir(s))
-        s["_has_picker"] = file_picker is not None
+        s["_has_picker"] = app.config["file_picker"] is not None
         return jsonify(s)
 
     @app.put("/api/settings")
@@ -95,6 +96,7 @@ def create_app(file_picker=None, bridge_io_factory=None) -> Flask:
 
     @app.post("/api/pick")
     def pick():
+        file_picker = app.config["file_picker"]
         if not file_picker:
             return jsonify({"error": "Selector no disponible en modo navegador"}), 501
         kind = (request.get_json(silent=True) or {}).get("kind", "gguf")
